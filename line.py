@@ -30,7 +30,7 @@ class Line(object):
 
         self.dimension = 2
 
-        #if no normal_vector is given, make it a 0 vector
+# if no normal_vector is given, make it a 0 vector
         if not normal_vector:
             all_zeros = ['0']*self.dimension
             normal_vector = Vector(all_zeros)
@@ -40,21 +40,20 @@ class Line(object):
             constant_term = Decimal('0')
         self.constant_term = Decimal(constant_term)
 
-        #basepoint is any point on the line, or in this
-        #case, a point at which the line intersects
-        #either the x or y axis
+# basepoint is any point on the line, or in this
+# case, a point at which the line intersects
+# either the x or y axis
         self.set_basepoint()
-
+    #end of __init__
 
     def set_basepoint(self, vec=None):
         if vec:
             self.basepoint = Vector(vec)
 
-            #the basepoint vector must have a component that
-            #is perpendicular to the line; the length of that
-            #component must be the constant term (when the line
-            #passes through 0, the constant term is 0)
-            #zero = self.basepoint.projected_onto(self.normal_vector)
+# If we know a point on the line (basepoint) and
+# we know the normal coefficients, we can calculate
+# the constant term by simply plugging the paratmeters
+# Ax + By = c (where x and y are given by the basep)
             x = self.normal_vector[0]*self.basepoint[0]
             y = self.normal_vector[1]*self.basepoint[1]
 
@@ -75,6 +74,7 @@ class Line(object):
                 self.basepoint = None
             else:
                 raise e
+    #end of set_basepoint(self, vec=None)
 
     def __getitem__(self, index):
         return self.normal_vector[index]
@@ -149,7 +149,6 @@ class Line(object):
 
     def intersection(self, geometry):
 
-
         if type(geometry) is Line:
             l = geometry
             A = Decimal(self.normal_vector[0])
@@ -164,6 +163,7 @@ class Line(object):
 
             return Vector([x, y])
 
+        #else geometry NOT a line
         geometry = Vector(geometry)
 
         test_point = geometry
@@ -183,6 +183,7 @@ class MyDecimal(Decimal):
     def is_near_zero(self, eps=1e-10):
         return abs(self) < eps
 
+
 class TestLineMethods(unittest.TestCase):
     def setUp(self):
         self.A = Line([4.046, 2.836], 1.21)
@@ -194,13 +195,13 @@ class TestLineMethods(unittest.TestCase):
 
     def test_parallel_Q(self):
         self.assertEqual(True,
-            self.C.parallel_Q(self.D))
+                         self.C.parallel_Q(self.D))
 
         self.assertEqual(False,
-            self.C.parallel_Q(self.D))
+                         self.C.parallel_Q(self.D))
 
         self.assertEqual(True,
-            self.C.parallel_Q(self.D))
+                         self.C.parallel_Q(self.D))
 
     def test_same_line_Q(self):
         self.assertTrue(self.A.same_line_Q(self.B))
@@ -212,17 +213,19 @@ class TestLineMethods(unittest.TestCase):
 
     def test_intersection(self):
         self.assertEqual("infinity",
-            self.A.intersection(self.B))
+                         self.A.intersection(self.B))
 
         self.assertEqual([1.173, 0.073],
-            self.C.intersection(self.D))
+                         self.C.intersection(self.D))
 
         self.assertEqual(False,
-            self.C.intersection(self.D))
+                         self.C.intersection(self.D))
 
-A = Line([1,1], 1)
-B = Line([2,2], 1)
+
+A = Line([1, 1], 1)
+B = Line([2, 2], 1)
 C = Line(normal_vector=[4, 5], constant_term=6)
+D = Line([1, 2], 3)
 
 if __name__ == '__main__':
     unittest.main()
