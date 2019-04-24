@@ -4,8 +4,7 @@ from vector import Vector
 
 import unittest, random
 
-getcontext().prec = 30
-
+getcontext().prec = 5
 
 class Line(object):
     """Defined by a normal vector and a constant term.
@@ -132,25 +131,50 @@ class Line(object):
 
     __repr__ = __str__
 
-    def parallel_Q(self, l):
-        return self.normal_vector.parallel_Q(l.normal_vector)
+    def __eq__(self, target):
+        return self.same_line_Q(target)
+
+    def direct_vector(self):
+        return Vector([-self[1], self[0]])
+
+    def parallel_Q(self, geometry):
+        if type(geometry) is Line:
+            l = geometry
+            return self.normal_vector.parallel_Q(l.normal_vector)
+
+        else:
+            v = Vector(geometry)
+            return self.normal_vector.parallel_Q(v)
 
     def same_line_Q(self, l):
-        return self.random_point().parallel_Q(l.random_point())
+        if type(l) is Line:
+            if self.parallel_Q(l):
+                return (abs(self[0]/l[0] - self.constant_term/l.constant_term) < .001)
+            else:
+                return False
+        else:
+            raise Exception("Cannot compare lines to other objects.")
 
     def random_point(self, interval=1):
-        direct_vector = Vector([self.normal_vector[1],
-                         -self.normal_vector[0]])
+        p = self.direct_vector()*Decimal(random.random()*interval)
+        p += self.basepoint
 
-        direct_vector *= random.random()*interval
-        direct_vector += self.basepoint
-
-        return direct_vector
+        return p
 
     def intersection(self, geometry):
 
         if type(geometry) is Line:
             l = geometry
+
+            print("TEST\n")
+            print(self.parallel_Q(l))
+            print(self.same_line_Q(l))
+            if self.parallel_Q(l):
+                if self.same_line_Q(l):
+                    return self
+                else:
+                    return False
+
             A = Decimal(self.normal_vector[0])
             B = Decimal(self.normal_vector[1])
             C = Decimal(l.normal_vector[0])
@@ -195,13 +219,13 @@ class TestLineMethods(unittest.TestCase):
 
     def test_parallel_Q(self):
         self.assertEqual(True,
-                         self.C.parallel_Q(self.D))
+                         self.A.parallel_Q(self.B))
 
         self.assertEqual(False,
                          self.C.parallel_Q(self.D))
 
         self.assertEqual(True,
-                         self.C.parallel_Q(self.D))
+                         self.E.parallel_Q(self.F))
 
     def test_same_line_Q(self):
         self.assertTrue(self.A.same_line_Q(self.B))
@@ -209,23 +233,31 @@ class TestLineMethods(unittest.TestCase):
         self.assertFalse(self.E.same_line_Q(self.F))
 
     def test_random_point(self):
-        self.assertTrue(self.intersection(self.random_point()))
+        self.assertTrue(self.A.intersection(self.A.random_point()))
 
     def test_intersection(self):
-        self.assertEqual("infinity",
+        self.assertEqual(self.A,
                          self.A.intersection(self.B))
 
-        self.assertEqual([1.173, 0.073],
+        self.assertEqual(Vector([1.173, 0.073]),
                          self.C.intersection(self.D))
 
         self.assertEqual(False,
-                         self.C.intersection(self.D))
+                         self.E.intersection(self.F))
 
 
-A = Line([1, 1], 1)
-B = Line([2, 2], 1)
-C = Line(normal_vector=[4, 5], constant_term=6)
-D = Line([1, 2], 3)
+A = Line([4.046, 2.836], 1.21)
+B = Line([10.115, 7.09], 3.025)
+C = Line([7.204, 3.182], 8.68)
+D = Line([8.172, 4.114], 9.883)
+E = Line([1.182, 5.562], 6.744)
+F = Line([1.773, 8.343], 9.525)
+
+
+a = Line([1, 1], 1)
+b = Line([2, 2], 1)
+c = Line(normal_vector=[4, 5], constant_term=6)
+d = Line([1, 2], 3)
 
 if __name__ == '__main__':
     unittest.main()
