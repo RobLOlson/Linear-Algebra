@@ -132,6 +132,14 @@ class Line(object):
     __repr__ = __str__
 
     def __eq__(self, target):
+        if self.normal_vector.is_zero():
+            if target.normal_vector.is_zero():
+                return abs(self.constant_term - target.constant_term) < 0.001
+            else:
+                return False
+        elif target.normal_vector.is_zero():
+            return False
+
         return self.same_line_Q(target)
 
     def direct_vector(self):

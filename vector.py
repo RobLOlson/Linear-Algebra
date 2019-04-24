@@ -8,7 +8,6 @@ setcontext(Context(prec=5))
 class Vector(object):
     def __init__(self, coordinates, delta=.001):
         self.delta = delta
-
         try:
             if not coordinates:
                 raise ValueError
