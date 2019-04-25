@@ -10,13 +10,8 @@ class Line(object):
     """Defined by a normal vector and a constant term.
     If ax + by = c, then
 
-    the normal vector is [a, b] and the constant term is c.
+    the normal vector is [a, b] and the constant term is c."""
 
-    TO IMPLEMENT:
-
-    *Determine if two lines are parallel
-    *Determine if two lines are equal
-    *Compute the intersection of two lines"""
     NO_NONZERO_ELTS_FOUND_MSG = 'No nonzero elements found'
 
 

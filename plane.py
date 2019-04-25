@@ -18,8 +18,7 @@ class Plane(object):
         constant_term
 
         TO DO
-        parallel Q
-        equal Q
+        watch more lecture
         """
         self.dimension = 3
 
