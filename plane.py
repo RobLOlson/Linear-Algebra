@@ -2,7 +2,9 @@ from decimal import Decimal, getcontext
 
 from vector import Vector
 
-getcontext().prec = 30
+import unittest, random
+
+getcontext().prec = 5
 
 
 class Plane(object):
@@ -10,30 +12,48 @@ class Plane(object):
     NO_NONZERO_ELTS_FOUND_MSG = 'No nonzero elements found'
 
     def __init__(self, normal_vector=None, constant_term=None):
+        """public attributes:
+        dimension
+        normal_vector
+        constant_term
+
+        TO DO
+        parallel Q
+        equal Q
+        """
         self.dimension = 3
 
+        # if no normal vector is given make it the 0-plane
         if not normal_vector:
             all_zeros = ['0']*self.dimension
             normal_vector = Vector(all_zeros)
-        self.normal_vector = normal_vector
+        self.normal_vector = Vector(normal_vector)
 
         if not constant_term:
             constant_term = Decimal('0')
         self.constant_term = Decimal(constant_term)
 
+        # basepoint is any point on the plane; as implemented
+        # that means a point on the plane that passes thru
+        # one of the coordinate axes
         self.set_basepoint()
 
-
     def set_basepoint(self):
+        """set the basepoint"""
+
         try:
             n = self.normal_vector
             c = self.constant_term
             basepoint_coords = ['0']*self.dimension
-
+            # set all of {x,y,z} to 0
             initial_index = Plane.first_nonzero_index(n)
-            initial_coefficient = n[initial_index]
-
-            basepoint_coords[initial_index] = c/initial_coefficient
+            # if any({x,y,z}) has non-zero coefficient, divide
+            # the equation (e.g., Ax + 0y + 0z = c) by that
+            # coefficient.
+            initial_coefficient = Decimal(n[initial_index])
+            # e.g., x then becomes c / A
+            basepoint_coords[initial_index] = Decimal(c/initial_coefficient)
+            # finally, e.g., the basepoint is [x,y,z]==[c/A, 0, 0]
             self.basepoint = Vector(basepoint_coords)
 
         except Exception as e:
@@ -42,8 +62,8 @@ class Plane(object):
             else:
                 raise e
 
-
     def __str__(self):
+        """Represent the Plane in the form of a 3 term equation."""
 
         num_decimal_places = 3
 
@@ -87,7 +107,44 @@ class Plane(object):
         output += ' = {}'.format(constant)
 
         return output
+    # end of __str__(self)
 
+    __repr__ = __str__
+
+    def __getitem__(self, index):
+        return self.normal_vector[index]
+
+    def __setitem__(self, index, value):
+        temp = list(self.normal_vector)
+        temp[index] = value
+        self.normal_vector = tuple(temp)
+
+    def __contains__(self):
+        pass
+
+    def parallel_Q(self, geometry):
+        if type(geometry) is Plane:
+            pln = geometry
+            return self.normal_vector.parallel_Q(pln.normal_vector)
+
+        if type(geometry) is Line:
+            l = geometry
+            return self.normal_vector.parallel_Q(l.normal_vector)
+
+    def equal_Q(self, pln):
+        if self.parallel_Q(pln):
+            if self[0]*pln.constant_term == pln[0]*self.constant_term:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def random_point(self, interval):
+        pass
+
+    def random_basis(self):
+        pass
 
     @staticmethod
     def first_nonzero_index(iterable):
@@ -95,8 +152,42 @@ class Plane(object):
             if not MyDecimal(item).is_near_zero():
                 return k
         raise Exception(Plane.NO_NONZERO_ELTS_FOUND_MSG)
-
+#end Plane class
 
 class MyDecimal(Decimal):
     def is_near_zero(self, eps=1e-10):
         return abs(self) < eps
+
+class TestPlane(unittest.TestCase):
+    def setUp(self):
+        self.A = Plane([-0.412, 3.806, 0.728], -3.46)
+        self.B = Plane([1.03, -9.515, -1.82], 8.65)
+        self.C = Plane([2.611, 5.528, 0.283], 4.6)
+        self.D = Plane([7.715, 8.306, 5.342], 3.76)
+        self.E = Plane([-7.926, 8.625, -7.212], -7.952)
+        self.F = Plane([-2.642, 2.875, -2.404], -2.443)
+
+    def test_parallel_Q(self):
+        self.assertTrue(self.A.parallel_Q(self.B))
+        self.assertFalse(self.C.parallel_Q(self.D))
+        self.assertTrue(self.E.parallel_Q(self.F))
+
+    def test_equal_Q(self):
+        self.assertTrue(self.A.equal_Q(self.B))
+        self.assertFalse(self.C.equal_Q(self.D))
+        self.assertFalse(self.E.equal_Q(self.F))
+
+    def test_contains(self):
+        pass
+# end UnitTest class
+
+
+A = Plane([-0.412, 3.806, 0.728], -3.46)
+B = Plane([1.03, -9.515, -1.82], 8.65)
+C = Plane([2.611, 5.528, 0.283], 4.6)
+D = Plane([7.715, 8.306, 5.342], 3.76)
+E = Plane([-7.926, 8.625, -7.212], -7.952)
+F = Plane([-2.642, 2.875, -2.505], -2.443)
+
+if __name__ == "__main__":
+    unittest.main()

@@ -6,7 +6,7 @@ import unittest
 setcontext(Context(prec=5))
 
 class Vector(object):
-    def __init__(self, coordinates, delta=.001):
+    def __init__(self, coordinates, delta=Decimal(.001)):
         self.delta = delta
         try:
             if not coordinates:
@@ -27,8 +27,11 @@ class Vector(object):
         return len(self.coordinates)
 
     def __eq__(self, v):
-        return all([e[0] - e[1] < self.delta
-                    for e in zip(self.coordinates, v.coordinates)])
+        try:
+            return all([abs(e[0] - e[1]) < self.delta
+                        for e in zip(self.coordinates, v.coordinates)])
+        except IndexError:
+            raise Exception("Cannot compare vectors of different dimension")
 
     def __add__(self, v):
         return Vector([e[0]+e[1] for
@@ -60,7 +63,7 @@ class Vector(object):
         return sqrt(sum([elem * elem for elem in self.coordinates]))
 
     def __repr__(self):
-        return str([float(e) for e in self.coordinates])
+        return "V"+str([float(e) for e in self.coordinates])
 
     def normalize(self):
         try:
@@ -73,7 +76,10 @@ class Vector(object):
         if type(v) is not Vector:
             v = Vector(v)
 
-        if abs(v) < 0.0001:
+        #if the 0-vector is given as an argument
+        #instead returnn the angle of self with respect
+        #to the x-axis
+        if abs(v) < self.delta:
             v = [0] * len(v)
             v[0] = 1
             v = Vector(v)
@@ -105,26 +111,49 @@ class Vector(object):
 
         return Vector([cx, cy, cz])
 
-    def parallel_Q(self, v2):
-        """Returns true if v2 is parallel with self."""
+    def parallel_Q(self, target):
+        """Returns true if the target is parallel with self."""
 
-        if abs(self) < 0.001 or abs(v2) < 0.0001:
+        # the 0 vector is parallel to all vectors
+        if abs(self) < self.delta or abs(target) < self.delta:
             return True
-        if self.angle(v2) < 0.001 or abs(self.angle(v2) - 3.14159265) < 0.001:
-            return True
+        i = Vector.find_non_zero_indeces(self, target)
+        print("TESTING\n\n")
+        print(i)
+        if i >= 0:
+            ratio = self[i] / target[i]
+            print("TESTINGAGAIN\n\n")
+            print(ratio)
+            return self == target*ratio
         else:
             return False
+
+        # if the target's angle is 0 or 180 it must be parallel
+        # if (self.angle(target) < self.delta or
+        #     abs(self.angle(target) - Decimal(3.14159265)) < self.delta):
+        #     return True
+        # else:
+        #     return False
 
     def orthogonal_Q(self, v2):
         """Returns true if v2 is orthogonal to self."""
 
-        if abs(self*v2) < 0.001:
+        # if the dot product is close to 0 they must be orthogonal
+        if abs(self*v2) < self.delta:
             return True
         else:
             return False
 
     def is_zero(self):
-        return abs(self) == 0
+        return abs(self) < self.delta
+
+    @staticmethod
+    def find_non_zero_indeces(a, b):
+        for i, l in enumerate(zip(a,b)):
+            if l[0] and l[1]:
+                return i
+
+        return None
 
 
 class TestVectorMethods(unittest.TestCase):
@@ -184,30 +213,32 @@ class TestVectorMethods(unittest.TestCase):
         self.assertEqual(self.F.orthogonal_part(self.G),
                          Vector([-2.111, 3.838]))
 
+    def test_equality(self):
+        self.assertFalse(self.A == self.B)
+        self.assertTrue(self.A == self.A)
+        self.assertTrue(self.A*-10 == self.E)
+
     def test_cross(self):
         pass
 
     def test_parallel_Q(self):
-        pass
+
+        #c = -2.5
+        self.assertTrue(Vector([-0.412, 3.806, 0.728]).parallel_Q(
+                        Vector([1.03, -9.515, -1.82])))
 
     def test_orthogonal_Q(self):
         pass
 
 
 A = Vector([1, 1])
-
 B = Vector([2, 2])
-
 C = Vector([1, -1])
-
 D = Vector([1, 2])
-
 E = Vector([-10, -10])
-
 F = Vector([1.234, 5.678])
 G = Vector([9.876, 5.432])
 ux = Vector([1, 0])
-
 uy = Vector([0, 1])
 
 if __name__ == "__main__":

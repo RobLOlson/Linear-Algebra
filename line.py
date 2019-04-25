@@ -174,9 +174,6 @@ class Line(object):
         if type(geometry) is Line:
             l = geometry
 
-            print("TEST\n")
-            print(self.parallel_Q(l))
-            print(self.same_line_Q(l))
             if self.parallel_Q(l):
                 if self.same_line_Q(l):
                     return self
@@ -266,6 +263,8 @@ a = Line([1, 1], 1)
 b = Line([2, 2], 1)
 c = Line(normal_vector=[4, 5], constant_term=6)
 d = Line([1, 2], 3)
+
+bool(d.parallel_Q(b))
 
 if __name__ == '__main__':
     unittest.main()
