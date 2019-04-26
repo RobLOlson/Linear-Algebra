@@ -110,6 +110,9 @@ class Plane(object):
 
     __repr__ = __str__
 
+    def __eq__(self, target):
+        return self.equal_Q(target)
+
     def __getitem__(self, index):
         return self.normal_vector[index]
 
@@ -120,6 +123,25 @@ class Plane(object):
 
     def __contains__(self):
         pass
+
+    def __mul__(self, val):
+        return Plane(self.normal_vector*Decimal(val),
+                     self.constant_term*Decimal(val))
+
+    __rmul__ = __mul__
+
+    def __add__(self, val):
+        if self.dimension != val.dimension:
+            raise Exception("Can only add Planes() of same .dimension.")
+        try:
+            new_normal = self.normal_vector + val.normal_vector
+            new_constant = self.constant_term + val.constant_term
+
+            return Plane(new_normal, new_constant)
+        except TypeError:
+            raise TypeError("Can only add Planes() to other Planes().")
+
+    __radd__ = __add__
 
     def parallel_Q(self, geometry):
         if type(geometry) is Plane:

@@ -117,13 +117,11 @@ class Vector(object):
         # the 0 vector is parallel to all vectors
         if abs(self) < self.delta or abs(target) < self.delta:
             return True
+
+        # if target is a ratio multiple of self then it must be parallel
         i = Vector.find_non_zero_indeces(self, target)
-        print("TESTING\n\n")
-        print(i)
         if i >= 0:
             ratio = self[i] / target[i]
-            print("TESTINGAGAIN\n\n")
-            print(ratio)
             return self == target*ratio
         else:
             return False
