@@ -34,20 +34,20 @@ class Vector(object):
             raise Exception("Cannot compare vectors of different dimension")
 
     def __add__(self, v):
-        return Vector([e[0]+e[1] for
+        return Vector([round(e[0]+e[1], ndigits=5) for
                        e in zip(self.coordinates, v.coordinates)])
 
     def __sub__(self, v):
-        return Vector([e[0]-e[1] for
+        return Vector([round(e[0]-e[1], ndigits=5) for
                        e in zip(self.coordinates, v.coordinates)])
 
-    def __mul__(self, c):
-        if type(c) is Vector:
-            return Decimal(sum([e[0]*e[1] for
+    def __mul__(self, quantity):
+        if type(quantity) is Vector:
+            return Decimal(sum([round(e[0]*e[1], ndigits=5) for
                                 e in
-                                zip(self.coordinates, c.coordinates)]))
+                                zip(self.coordinates, quantity.coordinates)]))
         else:
-            return Vector([Decimal(c)*elem for elem in self.coordinates])
+            return Vector([Decimal(quantity)*elem for elem in self.coordinates])
 
     __rmul__ = __mul__
 

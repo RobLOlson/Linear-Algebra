@@ -119,16 +119,21 @@ class Plane(object):
     def __setitem__(self, index, value):
         temp = list(self.normal_vector)
         temp[index] = value
-        self.normal_vector = tuple(temp)
+        self.normal_vector = Vector(temp)
 
     def __contains__(self):
         pass
 
     def __mul__(self, val):
-        return Plane(self.normal_vector*Decimal(val),
+        return Plane(Vector(self.normal_vector)*Decimal(val),
                      self.constant_term*Decimal(val))
 
     __rmul__ = __mul__
+
+    def __sub__(self, val):
+        return self+-1*val
+
+    __rsub__ = __sub__
 
     def __add__(self, val):
         if self.dimension != val.dimension:
