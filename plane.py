@@ -118,7 +118,7 @@ class Plane(object):
 
     def __setitem__(self, index, value):
         temp = list(self.normal_vector)
-        temp[index] = value
+        temp[index] = Decimal(str(value))
         self.normal_vector = Vector(temp)
 
     def __contains__(self):

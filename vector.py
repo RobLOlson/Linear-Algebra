@@ -6,12 +6,12 @@ import unittest
 setcontext(Context(prec=5))
 
 class Vector(object):
-    def __init__(self, coordinates, delta=Decimal(.001)):
+    def __init__(self, coordinates, delta=Decimal(.00001)):
         self.delta = delta
         try:
             if not coordinates:
                 raise ValueError
-            self.coordinates = tuple([Decimal(e) for e in coordinates])
+            self.coordinates = tuple([Decimal(str(e)) for e in coordinates])
             self.dimension = len(coordinates)
 
         except ValueError:
@@ -34,16 +34,16 @@ class Vector(object):
             raise Exception("Cannot compare vectors of different dimension")
 
     def __add__(self, v):
-        return Vector([round(e[0]+e[1], ndigits=5) for
+        return Vector([e[0]+e[1] for
                        e in zip(self.coordinates, v.coordinates)])
 
     def __sub__(self, v):
-        return Vector([round(e[0]-e[1], ndigits=5) for
+        return Vector([e[0]-e[1] for
                        e in zip(self.coordinates, v.coordinates)])
 
     def __mul__(self, quantity):
         if type(quantity) is Vector:
-            return Decimal(sum([round(e[0]*e[1], ndigits=5) for
+            return Decimal(sum([e[0]*e[1] for
                                 e in
                                 zip(self.coordinates, quantity.coordinates)]))
         else:

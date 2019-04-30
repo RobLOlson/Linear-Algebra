@@ -8,14 +8,13 @@ import pdb
 
 getcontext().prec = 30
 
-
 class LinearSystem(object):
     """public attributes:
     dimension
     planes[]
 
     TODO
-    compute triangular form
+    compute RREF
     rest of gaussian elimination"""
 
     ALL_PLANES_MUST_BE_IN_SAME_DIM_MSG = 'All planes in the system should live in the same dimension'
@@ -42,40 +41,47 @@ class LinearSystem(object):
     def scalar_multiply(self, coefficient, row):
         self.planes[row] = Decimal(coefficient) * self.planes[row]
 
-    def linear_combine(self, coefficient, row_to_add, row_to_be_added_to):
-        a = row_to_be_added_to
+    def linear_combine(self, amount, row_to_add, destination):
+        a = destination
         b = row_to_add
-        self.planes[a] += Decimal(coefficient)*self.planes[b]
+        self.planes[a] += Decimal(amount)*self.planes[b]
 
-    # def pivot_num(self):
-    #     pivots = self.pivots()
-    #     empty_rows = [e for e in pivots if e[0] == None]
+    def make_zeroes_above(self, pln_i, coef_i):
+        system = deepcopy(self)
+        coefs = system.coefs_above(pln_i, coef_i)
+        pivot = system[pln_i][coef_i]
+        if pivot == 0:
+            raise Exception("Pivot must be non-zero to eliminate above.")
+        top = len(coefs)
+        for i, target in enumerate(coefs):
+            if abs(target) > .0001:
+                ratio = Decimal(-target / pivot)
+                system.linear_combine(ratio, pln_i, i)
 
-    #     return len(pivots) - len(empty_rows)
-
-    # def elimination_step(self):
-    #     system = deepcopy(self)
-    #     pivots = system.pivots()
-    #     empty_rows = [e for e in pivots if e[0] == None]
+        return system
 
 
-    #     if pivots == sorted(pivots, key=lambda x:x[1]):
-    #         return system
-    #     else:
-    #         return sorted(system, key=lambda x: [e[1] for e in pivots].index(x))
-    #     for piv_i, piv in pivots:
-    #         pass
+    def compute_rref(self):
+        system = deepcopy(self)
+        system = system.triangular()
 
-    def triangle_Q(self):
-        if self.pivots() == sorted(self.pivots(), key=lambda x: x[1]):
-            for pln_i, piv in enumerate(self.pivots()):
-                if any(self.coefs_below(pln_i, piv[1])):
-                    return False
 
-            return True
+        for i in range(len(system.planes)):
+            piv_columns = system.indices_of_first_nonzero_terms_in_each_row()
+            if piv_columns[i] > -1:
+                system = system.make_zeroes_above(i, piv_columns[i])
+                # if system[i][piv_columns[i]] != 1:
+                #     system[i] = system[i] * (1/piv_columns[i])
+                    # system.scalar_multiply(1/piv_columns[i], i)
 
-        else:
-            return False
+        return system
+
+
+    def pivot_num(self):
+        pivots = self.pivots()
+        empty_rows = [e for e in pivots if e[0] == None]
+
+        return len(pivots) - len(empty_rows)
 
     def show_pivots(self):
         system = deepcopy(self)
@@ -84,12 +90,12 @@ class LinearSystem(object):
         for pln_i, pln in enumerate(pivots):
             if pln[1] != None:
                 pivot_elements.append((pln_i, pln[1]))
-        return system.matrix_form(highlights = pivot_elements)
+        return system.matrix_form(highlights=pivot_elements)
 
     def pivots(self):
         """Returns a list of (pivot_value, pivot_index) tuples.
         Pivots are ordered from top to bottom.
-        Rows with no pivot return pivot_value = None."""
+        Rows with no pivot return (None, None)."""
 
         pivots = [(None, None) for i in range(len(self.planes))]
 
@@ -118,11 +124,10 @@ class LinearSystem(object):
 
     def coefs_above(self, pln_i, coef_i):
         coefs = []
-        pln_i -= 1
-
-        while pln_i > 0:
-            coefs.append(self[pln_i][coef_i])
-            pln_i -= 1
+        counter = 0
+        while counter < pln_i:
+            coefs.append(self[counter][coef_i])
+            counter+=1
 
         return coefs
 
@@ -134,9 +139,11 @@ class LinearSystem(object):
                 largest_const = len(str(pln.constant_term))
 
             for coef in pln.normal_vector:
-                if len(str(float(coef))) > largest_coef:
-                    largest_coef = len(str(float(coef)))
+                if len(str(Decimal(str(coef)))) > largest_coef:
+                    largest_coef = len(str(Decimal(str(coef))))
         result = ""
+        if largest_coef > 6:
+            largest_coef = 6
 
         for i, pln in enumerate(self.planes):
             s = ""
@@ -148,7 +155,7 @@ class LinearSystem(object):
                     s += "*"
                 else:
                     s += " "
-                s += "{val:^{width}}".format(width=largest_coef, val=float(coef))
+                s += "{val:^{width}.6}".format(width=largest_coef, val=str(Decimal(str(coef))))
                 if (i, j) in highlights:
                     s += "*"
                 else:
@@ -158,8 +165,8 @@ class LinearSystem(object):
                 s2 = " [x{}]".format(i+1)
             else:
                 s2 = "     "
-            s3 = " || ["+" {:^"+str(float(largest_const))+"} "+"]"
-            s3 = s3.format(round(self.planes[i].constant_term, ndigits=5))
+            s3 = " || ["+" {:^"+str(Decimal(largest_const))+"} "+"]"
+            s3 = s3.format(self.planes[i].constant_term)
 
             result += s.format(width=largest_coef, *pln.normal_vector)+s2+s3
         return result
@@ -198,7 +205,6 @@ class LinearSystem(object):
                     piv_val = system.planes[pln_i][coef_i]
                     below = system.coefs_below(pln_i, coef_i)
                     for below_i, below_co in enumerate(below):
-                        breakpoint()
                         system.linear_combine(-below_co/piv_val,
                                               piv_i,
                                               pln_i + below_i + 1)
@@ -367,9 +373,49 @@ if __name__ == "__main__":
     p2 = Plane(normal_vector=Vector(['1','-1','1']), constant_term='2')
     p3 = Plane(normal_vector=Vector(['1','2','-5']), constant_term='3')
     s = LinearSystem([p1,p2,p3])
-    breakpoint()
     t = s.triangular()
     if not (t[0] == Plane(normal_vector=Vector(['1','-1','1']), constant_term='2') and
             t[1] == Plane(normal_vector=Vector(['0','1','1']), constant_term='1') and
             t[2] == Plane(normal_vector=Vector(['0','0','-9']), constant_term='-2')):
         print('test case 2.4 failed')
+
+    p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+    p2 = Plane(normal_vector=Vector(['0','1','1']), constant_term='2')
+    s = LinearSystem([p1,p2])
+    r = s.compute_rref()
+    if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term='-1') and
+            r[1] == p2):
+        print('test case 2.1 failed')
+
+    p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+    p2 = Plane(normal_vector=Vector(['1','1','1']), constant_term='2')
+    s = LinearSystem([p1,p2])
+    r = s.compute_rref()
+    if not (r[0] == p1 and
+            r[1] == Plane(constant_term='1')):
+        print('test case 2.2 failed')
+
+    p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+    p2 = Plane(normal_vector=Vector(['0','1','0']), constant_term='2')
+    p3 = Plane(normal_vector=Vector(['1','1','-1']), constant_term='3')
+    p4 = Plane(normal_vector=Vector(['1','0','-2']), constant_term='2')
+    s = LinearSystem([p1,p2,p3,p4])
+    # breakpoint()
+    r = s.compute_rref()
+    # breakpoint()
+    if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term='0') and
+            r[1] == p2 and
+            r[2] == Plane(normal_vector=Vector(['0','0','-2']), constant_term='2') and
+            r[3] == Plane()):
+        print('test case 2.3 failed')
+
+    p1 = Plane(normal_vector=Vector(['0','1','1']), constant_term='1')
+    p2 = Plane(normal_vector=Vector(['1','-1','1']), constant_term='2')
+    p3 = Plane(normal_vector=Vector(['1','2','-5']), constant_term='3')
+    s = LinearSystem([p1,p2,p3])
+    r = s.compute_rref()
+    if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term=Decimal('23')/Decimal('9')) and
+            r[1] == Plane(normal_vector=Vector(['0','1','0']), constant_term=Decimal('7')/Decimal('9')) and
+            r[2] == Plane(normal_vector=Vector(['0','0','1']), constant_term=Decimal('2')/Decimal('9'))):
+        print('test case 2.4 failed')
+
