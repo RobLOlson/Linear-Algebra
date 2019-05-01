@@ -159,7 +159,7 @@ class Plane(object):
 
     def equal_Q(self, pln):
         if self.parallel_Q(pln):
-            if self[0]*pln.constant_term == pln[0]*self.constant_term:
+            if all([self[i]*pln.constant_term == pln[i]*self.constant_term for i in range(self.dimension)]):
                 return True
             else:
                 return False

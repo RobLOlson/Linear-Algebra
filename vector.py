@@ -1,17 +1,18 @@
-from math import sqrt, acos, pi
+from math import sqrt, acos, pi, log10
 from decimal import Decimal, setcontext, Context
 
 import unittest
 
-setcontext(Context(prec=5))
+setcontext(Context(prec=10))
+Dec = Decimal
 
 class Vector(object):
-    def __init__(self, coordinates, delta=Decimal(.00001)):
+    def __init__(self, coordinates, delta=Dec(.001)):
         self.delta = delta
         try:
             if not coordinates:
                 raise ValueError
-            self.coordinates = tuple([Decimal(str(e)) for e in coordinates])
+            self.coordinates = tuple([Dec(str(e)) for e in coordinates])
             self.dimension = len(coordinates)
 
         except ValueError:
@@ -20,34 +21,51 @@ class Vector(object):
         except TypeError:
             raise TypeError('The coordinates must be an iterable')
 
-    def __str__(self):
-        return 'Vector: {}'.format(self.coordinates)
+    @property
+    def prec(self):
+        return round(log10(1/self.delta))
 
     def __len__(self):
         return len(self.coordinates)
 
     def __eq__(self, v):
         try:
-            return all([abs(e[0] - e[1]) < self.delta
-                        for e in zip(self.coordinates, v.coordinates)])
+            zipped = zip(self.coordinates, v.coordinates)
+            diffs = [round(e[0] - e[1], ndigits=self.prec) for e in zipped]
+            for diff in diffs:
+                if abs(diff) > self.delta:
+                    return False
+
+            return True
+            # return all([abs(Dec(round(e[0] - e[1], ndigits=self.prec))) < self.delta
+            #             for e in zip(self.coordinates, v.coordinates)])
         except IndexError:
             raise Exception("Cannot compare vectors of different dimension")
 
     def __add__(self, v):
-        return Vector([e[0]+e[1] for
+        zipped = list(zip(self.coordinates, v.coordinates))
+        sums = [round(e[0] + e[1], ndigits=self.prec) for e in zipped]
+        return Vector([Dec(round(e[0]+e[1], ndigits=self.prec)) for
                        e in zip(self.coordinates, v.coordinates)])
 
     def __sub__(self, v):
-        return Vector([e[0]-e[1] for
+        return Vector([Dec(round(e[0]-e[1], ndigits=self.prec)) for
                        e in zip(self.coordinates, v.coordinates)])
 
-    def __mul__(self, quantity):
-        if type(quantity) is Vector:
-            return Decimal(sum([e[0]*e[1] for
-                                e in
-                                zip(self.coordinates, quantity.coordinates)]))
+    def __mul__(self, q):
+        if type(q) is Vector:
+            return Dec(
+                           round(
+                                 sum([e[0]*e[1] for
+                                     e in
+                                     zip(self.coordinates, q.coordinates)]
+                                     ),
+                                 ndigits=self.prec
+                                 )
+                           )
         else:
-            return Vector([Decimal(quantity)*elem for elem in self.coordinates])
+            prods = [round(Dec(q)*e, ndigits=self.prec) for e in self.coordinates]
+            return Vector(prods)
 
     __rmul__ = __mul__
 
@@ -56,18 +74,20 @@ class Vector(object):
 
     def __setitem__(self, index, value):
         temp = list(self.coordinates)
-        temp[index] = value
+        temp[index] = round(Dec(value), ndigits=self.prec)
         self.coordinates = tuple(temp)
 
     def __abs__(self):
-        return sqrt(sum([elem * elem for elem in self.coordinates]))
+        return Dec(round(sqrt(sum([elem * elem for elem in self.coordinates])), self.prec))
 
     def __repr__(self):
         return "V"+str([float(e) for e in self.coordinates])
 
+    __str__ = __repr__
+
     def normalize(self):
         try:
-            return Vector([elem / Decimal(abs(self)) for elem in self.coordinates])
+            return Vector([elem / Dec(abs(self)) for elem in self.coordinates])
 
         except ZeroDivisionError:
             raise Exception("Cannot normalize 0 vector.")
@@ -83,12 +103,11 @@ class Vector(object):
             v = [0] * len(v)
             v[0] = 1
             v = Vector(v)
-
-        cosine = self*v/(Decimal(abs(self))*Decimal(abs(v)))
-        return Decimal(acos(cosine))
+        cosine = round(self*v/(abs(self)*abs(v)), ndigits=self.prec)
+        return Dec(acos(cosine))
 
     def projected_part(self, v):
-        return (v*self)/(Decimal(abs(v)*abs(v)))*v
+        return (v*self)/(Dec(abs(v)*abs(v)))*v
 
     def orthogonal_part(self, v):
         return self - self.projected_part(v)
@@ -128,7 +147,7 @@ class Vector(object):
 
         # if the target's angle is 0 or 180 it must be parallel
         # if (self.angle(target) < self.delta or
-        #     abs(self.angle(target) - Decimal(3.14159265)) < self.delta):
+        #     abs(self.angle(target) - Dec(3.14159265)) < self.delta):
         #     return True
         # else:
         #     return False
@@ -182,8 +201,8 @@ class TestVectorMethods(unittest.TestCase):
         self.assertEqual(self.A.angle(self.C),
                          pi/2)
 
-        self.assertEqual(self.A.angle(self.D)+0,
-                         Decimal(0.32176)+0)
+        self.assertEqual(round(self.A.angle(self.D), 3),
+                         round(Dec('0.32176'), 3))
 
         for i in self.test_vectors:
             self.assertEqual(i.angle(i), 0)
