@@ -21,6 +21,12 @@ class Vector(object):
         except TypeError:
             raise TypeError('The coordinates must be an iterable')
 
+    @classmethod
+    def of_length(cls, dimension):
+        """returns a 0-Vector of given length"""
+        return [Dec(0)]*dimension
+
+
     @property
     def prec(self):
         return round(log10(1/self.delta))
@@ -37,8 +43,7 @@ class Vector(object):
                     return False
 
             return True
-            # return all([abs(Dec(round(e[0] - e[1], ndigits=self.prec))) < self.delta
-            #             for e in zip(self.coordinates, v.coordinates)])
+
         except IndexError:
             raise Exception("Cannot compare vectors of different dimension")
 
@@ -74,7 +79,8 @@ class Vector(object):
 
     def __setitem__(self, index, value):
         temp = list(self.coordinates)
-        temp[index] = round(Dec(value), ndigits=self.prec)
+        value = Decimal(value)
+        temp[index] = Dec(round(value, ndigits=self.prec))
         self.coordinates = tuple(temp)
 
     def __abs__(self):
@@ -97,7 +103,7 @@ class Vector(object):
             v = Vector(v)
 
         #if the 0-vector is given as an argument
-        #instead returnn the angle of self with respect
+        #instead return the angle of self with respect
         #to the x-axis
         if abs(v) < self.delta:
             v = [0] * len(v)
@@ -144,13 +150,6 @@ class Vector(object):
             return self == target*ratio
         else:
             return False
-
-        # if the target's angle is 0 or 180 it must be parallel
-        # if (self.angle(target) < self.delta or
-        #     abs(self.angle(target) - Dec(3.14159265)) < self.delta):
-        #     return True
-        # else:
-        #     return False
 
     def orthogonal_Q(self, v2):
         """Returns true if v2 is orthogonal to self."""

@@ -2,6 +2,10 @@ from decimal import Decimal, getcontext
 
 from vector import Vector
 
+from line import Line
+
+from math import log10
+
 import unittest, random
 
 getcontext().prec = 5
@@ -11,7 +15,7 @@ class Plane(object):
 
     NO_NONZERO_ELTS_FOUND_MSG = 'No nonzero elements found'
 
-    def __init__(self, normal_vector=None, constant_term=None):
+    def __init__(self, normal_vector=None, constant_term=None, delta=Decimal('.001')):
         """public attributes:
         dimension
         normal_vector
@@ -21,21 +25,29 @@ class Plane(object):
         watch more lecture
         """
         self.dimension = 3
+        self.delta = delta
 
         # if no normal vector is given make it the 0-plane
         if not normal_vector:
             all_zeros = ['0']*self.dimension
             normal_vector = Vector(all_zeros)
-        self.normal_vector = Vector(normal_vector)
+        self.normal_vector = Vector([round(e, self.prec) for e in normal_vector])
 
         if not constant_term:
             constant_term = Decimal('0')
-        self.constant_term = Decimal(constant_term)
+
+        constant_term = Decimal(constant_term)
+        self.constant_term = round(constant_term, self.prec)
 
         # basepoint is any point on the plane; as implemented
         # that means a point on the plane that passes thru
         # one of the coordinate axes
         self.set_basepoint()
+
+    @property
+    def prec(self):
+        return round(log10(1/self.delta))
+
 
     def set_basepoint(self):
         """set the basepoint"""
@@ -51,7 +63,7 @@ class Plane(object):
             # coefficient.
             initial_coefficient = Decimal(n[initial_index])
             # e.g., x then becomes c / A
-            basepoint_coords[initial_index] = Decimal(c/initial_coefficient)
+            basepoint_coords[initial_index] = Decimal(round(c/initial_coefficient, self.prec))
             # finally, e.g., the basepoint is [x,y,z]==[c/A, 0, 0]
             self.basepoint = Vector(basepoint_coords)
 
@@ -118,7 +130,7 @@ class Plane(object):
 
     def __setitem__(self, index, value):
         temp = list(self.normal_vector)
-        temp[index] = Decimal(str(value))
+        temp[index] = Decimal(round(value, self.prec))
         self.normal_vector = Vector(temp)
 
     def __contains__(self):

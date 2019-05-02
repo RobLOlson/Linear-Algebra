@@ -22,7 +22,7 @@ class LinearSystem(object):
     NO_SOLUTIONS_MSG = 'No solutions'
     INF_SOLUTIONS_MSG = 'Infinitely many solutions'
 
-    def __init__(self, planes, delta='0.001'):
+    def __init__(self, planes, delta=Decimal('0.001')):
         self.delta = Decimal(delta)
         try:
             d = planes[0].dimension
@@ -34,6 +34,18 @@ class LinearSystem(object):
 
         except AssertionError:
             raise Exception(self.ALL_PLANES_MUST_BE_IN_SAME_DIM_MSG)
+
+    @classmethod
+    def diagonal(cls, diagonals=Vector([1, 1, 1])):
+        """returns a square LinearSystem() with only diagonal entries non-zero"""
+
+        slices = []
+        for i, val in enumerate(diagonals):
+            normal = Vector([0]*len(diagonals))
+            normal[i] = val
+            slices.append(Plane(normal_vector=normal, constant_term=0), delta=self.delta)
+
+        return LinearSystem(slices)
 
     @property
     def prec(self):
@@ -50,9 +62,94 @@ class LinearSystem(object):
         b = row_to_add
         self.planes[a] += Decimal(amount)*self.planes[b]
 
-    def solve_system(self):
+    def solution(self):
         system = deepcopy(self)
         system = system.compute_rref()
+
+        r = system.pivot_num()
+        m = len(system.planes)
+        n = system.dimension
+
+        solution = Vector.of_length(n)
+        one_solution = True
+        many_solutions = False
+        no_solution = False
+
+        # if m > n:
+        # matrix is a tall rectangle; one solution possible, but unlikely
+        # if n > m:
+        # matrix is a squamous rectangle; likely many solutions
+
+        non_zeroes = system.indices_of_first_nonzero_terms_in_each_row()
+        for pln_i, coef_i in enumerate(non_zeroes):
+            # definite solutions are only possible in pivot rows
+            # which are bubbled to the top after rref()
+            if pln_i < r:
+                # if a pivot row has more than 1 non-zero coefficient
+                # the extra coefficients are free variables
+                if any(system[pln_i][coef_i+1:]):
+                    print(f"{self}\nHAS MANY SOLUTIONS")
+                    one_solution = False
+                    many_solutions = True
+                else:
+                    solution[pln_i] = system[pln_i].constant_term
+
+            # if a matrix row has all 0's, it's constant term must be 0
+            # or else there is no solution
+            if coef_i == -1:
+
+                # if a 0 row has a non-0 right hand side, then
+                # DEFINITELY no solution
+                if abs(system[pln_i].constant_term) > self.delta:
+                    print(f"{self}\nHAS NO SOLUTION")
+                    one_solution = False
+                    many_solutions = False
+                    no_solution = True
+
+                # # if a 0 row has a 0 right hand side
+                # elif not no_solution:
+                #     print(f"{self}\nHAS INFINITE SOLUTIONS")
+                #     one_solution = False
+                #     many_solutions = True
+
+        if one_solution:
+            return solution
+
+        if many_solutions:
+            return False
+
+        if no_solution:
+            return False
+        return solution
+
+            # non_zeroes = system.indices_of_first_nonzero_terms_in_each_row()
+            # for pln_i, coef_i in enumerate(non_zeroes):
+            #     if coef_i == -1:
+            #         if abs(system[pln_i].constant_term) > self.delta:
+            #             return False
+            # for pln_i, coef_i in enumerate(non_zeroes):
+            #     if any(system[pln_i][coef_i:-1]):
+            #         many_solutions = True
+            #         return "many solutions"
+
+
+        # # matrix is square ; one solution likely
+        # if m == n:
+        #     breakpoint()
+        #     if r < m:
+        #         non_zeroes = system.indices_of_first_nonzero_terms_in_each_row()
+        #         for pln_i, coef_i in enumerate(non_zeroes):
+        #             if coef_i == -1:
+        #                 if abs(system[pln_i].constant_term) > self.delta:
+        #                     return False
+        #         for pln_i, coef_i in enumerate(non_zeroes):
+        #             if any(system[pln_i][coef_i:-1]):
+        #                 many_solutions = True
+        #                 return "many solutions"
+
+        #     return Vector([e.constant_term for e in system.planes])
+
+# end of LinearSystem.solution() ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
     def make_zeroes_above(self, pln_i, coef_i):
@@ -74,7 +171,6 @@ class LinearSystem(object):
         system = deepcopy(self)
         system = system.triangular()
 
-
         for i in range(len(system.planes)):
             piv_columns = system.indices_of_first_nonzero_terms_in_each_row()
             if piv_columns[i] > -1:
@@ -84,7 +180,8 @@ class LinearSystem(object):
                     # system.scalar_multiply(1/piv_columns[i], i)
         return system
 
-    @staticmethod
+    rref = compute_rref
+
     def pivot_num(self):
         pivots = self.pivots()
         empty_rows = [e for e in pivots if e[0] == None]
@@ -116,8 +213,6 @@ class LinearSystem(object):
                     pivots[pln_i] = (coef, coef_i)
 
                     break
-        # pivots = [e for e in pivots if e]
-        print("pivots = {}".format(pivots))
         return pivots
 
     def coefs_below(self, pln_i, coef_i):
@@ -178,7 +273,8 @@ class LinearSystem(object):
 
             result += s.format(width=largest_coef, *pln.normal_vector)+s2+s3
         return result
-            # print(s.format(width=largest_coef,*pln.normal_vector)+s2+s3)
+
+# end of LinearSystem.matrix_form(...) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     def index_of_first_non_zero_below(self, pln_i, coef_i):
         below = self.coefs_below(pln_i, coef_i)
@@ -223,6 +319,8 @@ class LinearSystem(object):
             pln_i += 1
 
         return system
+
+# end of LinearSystem.triangular(...) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     def indices_of_first_nonzero_terms_in_each_row(self):
         num_equations = len(self)
@@ -412,9 +510,7 @@ if __name__ == "__main__":
     p3 = Plane(normal_vector=Vector(['1','1','-1']), constant_term='3')
     p4 = Plane(normal_vector=Vector(['1','0','-2']), constant_term='2')
     s7 = LinearSystem([p1,p2,p3,p4])
-    # breakpoint()
     r7 = s7.compute_rref()
-    # breakpoint()
     if not (r7[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term='0') and
             r7[1] == p2 and
             r7[2] == Plane(normal_vector=Vector(['0','0','-2']), constant_term='2') and
@@ -431,3 +527,29 @@ if __name__ == "__main__":
             r8[2] == Plane(normal_vector=Vector(['0','0','1']), constant_term=Decimal('2')/Decimal('9'))):
         print('test case 2.4 failed')
 
+    p1 = Plane([5.862, 1.178, -10.366], -8.15)
+    p2 = Plane([-2.931, -.589, 5.183], -4.075)
+    s9 = LinearSystem([p1, p2])
+    sol9 = s9.solution()
+    if sol9:
+        print('test case 3.1 failed')
+
+    p1 = Plane([8.631, 5.112, -1.816], -5.113)
+    p2 = Plane([4.315, 11.132, -5.27], -6.775)
+    p3 = Plane([-2.158, 3.01, -1.727], -.831)
+    s10 = LinearSystem([p1, p2, p3])
+    sol10 = s10.solution()
+    try:
+        if sol10 != "many solutions":
+            print('test case 3.2 failed')
+    except AttributeError:
+        print('test case 3.2 failed')
+
+    p1 = Plane([5.262, 2.739, -9.878], -3.441)
+    p2 = Plane([5.111, 6.358, 7.638], -2.152)
+    p3 = Plane([2.016, -9.924, -1.367], -9.278)
+    p4 = Plane([2.167, -13.543, -18.883], -10.567)
+    s11 = LinearSystem([p1, p2, p3, p4])
+    sol11 = s11.solution()
+    if sol11 != Vector([-1.177, .707, -.083]):
+        print('test case 3.3 failed')
