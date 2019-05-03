@@ -7,7 +7,7 @@ setcontext(Context(prec=10))
 Dec = Decimal
 
 class Vector(object):
-    def __init__(self, coordinates, delta=Dec(.001)):
+    def __init__(self, coordinates, delta=Dec('.00001')):
         self.delta = delta
         try:
             if not coordinates:
@@ -29,7 +29,7 @@ class Vector(object):
 
     @property
     def prec(self):
-        return round(log10(1/self.delta))
+        return round(log10(1/self.delta))-1
 
     def __len__(self):
         return len(self.coordinates)
@@ -164,7 +164,7 @@ class Vector(object):
         return abs(self) < self.delta
 
     @staticmethod
-    def find_non_zero_indeces(a, b):
+    def find_non_zero_indeces(a, b, delta=Decimal(".001")):
         for i, l in enumerate(zip(a,b)):
             if l[0] and l[1]:
                 return i

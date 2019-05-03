@@ -15,7 +15,7 @@ class Plane(object):
 
     NO_NONZERO_ELTS_FOUND_MSG = 'No nonzero elements found'
 
-    def __init__(self, normal_vector=None, constant_term=None, delta=Decimal('.001')):
+    def __init__(self, normal_vector=None, constant_term=None, delta=Decimal('.00001')):
         """public attributes:
         dimension
         normal_vector
@@ -46,7 +46,7 @@ class Plane(object):
 
     @property
     def prec(self):
-        return round(log10(1/self.delta))
+        return round(log10(1/self.delta))-1
 
 
     def set_basepoint(self):
@@ -193,7 +193,7 @@ class Plane(object):
 #end Plane class
 
 class MyDecimal(Decimal):
-    def is_near_zero(self, eps=1e-10):
+    def is_near_zero(self, eps=1e-3):
         return abs(self) < eps
 
 class TestPlane(unittest.TestCase):
